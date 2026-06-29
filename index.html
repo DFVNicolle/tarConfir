@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Asistencia Confirmada!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f6f3eb; /* Fondo crema idéntico al de tu tarjeta */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        .tarjeta-contenedor {
+            position: relative;
+            width: 100%; /* Ocupa el 100% del ancho del celular */
+            max-width: 450px; /* Evita que se deforme si se abre en una computadora */
+            padding: 0px; /* Quitamos los márgenes para que la imagen aproveche todo el espacio */
+            box-sizing: border-box;
+        }
+        .imagen-fondo {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+            box-shadow: 0px 8px 24px rgba(0,0,0,0.08);
+        }
+        /* CENTRADO PERFECTO DENTRO DEL ÓVALO PUNTEADO */
+        .nombre-invitado {
+            position: absolute;
+            top: 46%; /* <--- CAMBIADO DE 41% A 44% (Baja el texto) */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 55%; 
+            
+            /* Diseño de la letra */
+            text-align: center;
+            font-size: 10px; /* <--- CAMBIADO DE 22px A 16px (Letra más pequeña) */
+            font-weight: bold;
+            color: #484643; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .estado-carga {
+            font-size: 18px;
+            color: #af9253;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-carga" class="estado-carga">Registrando tu asistencia...</div>
+
+    <div id="tarjeta-web" class="tarjeta-contenedor" style="display: none;">
+        <!-- Asegúrate de subir tu imagen a GitHub con este nombre exacto -->
+        <img class="imagen-fondo" src="fondo-gracias.png" alt="Confirmación Sergia">
+        
+        <!-- El código pintará el nombre del invitado exactamente aquí en el medio -->
+        <div id="nombre-dinamico" class="nombre-invitado">Invitado</div>
+    </div>
+
+    <script>
+        const URL_EXCEL_CONECTOR = "https://script.google.com/macros/s/AKfycbyJSVInj_39vHMd4DdyxuOow7YVpUGMXzyxatcwEF0W4EoRsjWJgywSvxmJ8dmzVZiU/exec";
+
+        // Capturar el nombre del invitado desde el enlace
+        const parametrosURL = new URLSearchParams(window.location.search);
+        let nombreCodificado = parametrosURL.get('nombre');
+
+        const nombreCompleto = decodeURIComponent(nombreCodificado).replace(/\+/g, ' ');
+        document.getElementById("nombre-dinamico").innerText = nombreCompleto;
+
+        // FILTRO ANTIDUPLICADOS INTELIGENTE
+        if (localStorage.getItem("confirmado_50_sergia_" + nombreCompleto) === "si") {
+            // Si ya confirmó antes en este celular, muestra la tarjeta original y NO envía datos al Excel
+            mostrarTarjetaCompleta();
+        } else {
+            // Si es la primera vez, procede con el registro en la base de datos
+            guardarAsistenciaEnExcel(nombreCompleto);
+        }
+
+        function guardarAsistenciaEnExcel(nombre) {
+            // Si es el nombre de prueba local (entraste directo sin ?nombre=), no va a Google
+            if (window.location.search === "") {
+                mostrarTarjetaCompleta();
+                return;
+            }
+
+            fetch(`${URL_EXCEL_CONECTOR}?nombre=${encodeURIComponent(nombre)}`)
+                .then(res => res.json())
+                .then(data => {
+                    // Guarda el candado en el celular para saltarse el Excel en las próximas visitas
+                    localStorage.setItem("confirmado_50_sergia_" + nombre, "si");
+                    mostrarTarjetaCompleta();
+                })
+                .catch(err => {
+                    console.error("Error en el registro:", err);
+                    // Si falla la red, igual muestra la tarjeta original para la tranquilidad del invitado
+                    mostrarTarjetaCompleta();
+                });
+        }
+
+        function mostrarTarjetaCompleta() {
+            document.getElementById("pantalla-carga").style.display = "none";
+            document.getElementById("tarjeta-web").style.display = "block";
+        }
+    </script>
+</body>
+</html>
